@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-04 16:35:59
- * @LastEditTime: 2019-04-16 19:12:29
+ * @LastEditTime: 2019-04-17 15:36:24
  */
 /**
  * @description: 拖拽类
@@ -18,12 +18,17 @@
  * } 
  * @return:  
  */
-let TARGET_OBJ = ''
+let TARGET_OBJ = '' // 选中某一个元素后，再对该元素进行操作时，确定是哪一个dom元素
 export default class Drag {
   constructor (obj) {
     this.id = obj.id
     this.initParameter(obj)
   }
+  /**
+   * @description: 初始化参数 
+   * @param {type} 
+   * @return: 
+   */
   initParameter (obj) {
     this.canRotate = obj.canRotate === undefined ? true : obj.canRotate
     this.canZoom = obj.canZoom === undefined ? true : obj.canZoom
@@ -35,48 +40,59 @@ export default class Drag {
     this.isScale = obj.isScale === undefined ? true : obj.isScale
     this.parentNode = obj.parentNode ? document.getElementById(obj.parentNode) : document.body
     this.targetObj = document.getElementById(obj.id)
-    this.initPannel()
     this.initPos()
+    this.initPannel()
     this.initEvent()
   }
+  /**
+   * @description: 初始化pannel面板
+   * @param {type} 
+   * @return: 
+   */
   initPannel () {
     this.pannelDom = document.querySelector('#pannel')
     if (!this.pannelDom) {
       this.pannelDom = document.createElement('div')
       this.pannelDom.id = 'pannel'
       this.parentNode.appendChild(this.pannelDom)
+    } else {
+      this.pannelDom.innerHTML = ''
     }
+    this.initPannelDom()
   }
   initEvent () {
     document.addEventListener('mousemove', e => {
       e.preventDefault && e.preventDefault()
-      this.moveChange(e, TARGET_OBJ)
+      this.moveChange(e, this.targetObj)
     })
     document.addEventListener('mouseup', e => {
-      this.moveLeave(TARGET_OBJ)
+      this.moveLeave(this.targetObj)
     })
     if (this.canMove) {
       this.pannelDom.onmousedown = e => {
         e.stopPropagation()
-        this.moveInit(9, e, TARGET_OBJ)
+        this.moveInit(9, e, this.targetObj)
       }
-      // this.pannelDom.addEventListener(e => {
-      //   e.stopPropagation()
-      //   this.moveInit(9, e, this.targetObj)
-      // })
       this.targetObj.onmousedown = e => {
         this.moveInit(9, e, this.targetObj)
-        this.initDom()
-        // this.initPannelPos(this.targetObj)
+        this.initPannel()
+        this.pannelDom.onmousedown= e => {
+          this.moveInit(9, e, this.targetObj)
+        }
       }
     }
   }
   /**
-   * @description: 初始化dom
+   * @description: 初始化Pannel内部dom结构
    * @param {} 
    * @return: null
    */
-  initDom () {
+  initPannelDom () {
+    this.pannelDom.style.left = `${this.left}px`
+    this.pannelDom.style.top = `${this.top}px`
+    this.pannelDom.style.width = `${this.width}px`
+    this.pannelDom.style.height = `${this.height}px`
+    this.pannelDom.style.transform = `rotate(${this.angle}deg)`
     if (this.canRotate) {
       let rotatePoint = document.createElement('span')
       rotatePoint.className = `${this.id}-dragger-rotate-point dragger-rotate-point`
@@ -127,8 +143,12 @@ export default class Drag {
       this.pannelDom.appendChild(this.positionDom)
       this.positionDom.style.display = 'none'
     }
-    
   }
+  /**
+   * @description: 初始化targetObj的位置
+   * @param {type} 
+   * @return: 
+   */
   initPos () {
     this.left = this.targetObj.offsetLeft
     this.top = this.targetObj.offsetTop
@@ -181,27 +201,15 @@ export default class Drag {
       y: this.top + this.height / 2
     }
   }
-  initPannelPos (target) {
-    // this.pannelDom.style.left = `${target.offsetLeft}px`
-    // this.pannelDom.style.top = `${target.offsetTop}px`
-    // this.pannelDom.style.width = `${target.offsetWidth}px`
-    // this.pannelDom.style.height = `${target.offsetHeight}px`
-    // this.pannelDom.style.transform = `rotate(${this.getRotate(target)}deg)`
-  }
   moveInit (type, e, target) {
     TARGET_OBJ = target
     this.type = Number(type)
     this.mouseInit = {
-      x: e.clientX,
-      y: e.clientY
+      x: Math.floor(e.clientX),
+      y: Math.floor(e.clientY)
     }
     this.scale = target.offsetWidth / target.offsetHeight
-    this.initAngle = this.getRotate(target)
-    this.pannelDom.style.left = `${target.offsetLeft}px`
-    this.pannelDom.style.top = `${target.offsetTop}px`
-    this.pannelDom.style.width = `${target.offsetWidth}px`
-    this.pannelDom.style.height = `${target.offsetHeight}px`
-    this.pannelDom.style.transform = `rotate(${this.initAngle}deg)`
+    this.initAngle = this.angle
     this.initRightBottomPoint = this.rightBottomPoint
     this.initRightTopPoint = this.rightTopPoint
     this.initLeftTopPoint = this.leftTopPoint
@@ -212,8 +220,8 @@ export default class Drag {
     this.initBottomMiddlePoint = this.bottomMiddlePoint
     this.initCenterPos = this.centerPos
     this.initPosition = {
-      x: target.offsetLeft,
-      y: target.offsetTop
+      x: this.left,
+      y: this.top
     }
     if (type === 0) {
       this.rotateFlag = true
@@ -233,16 +241,16 @@ export default class Drag {
           }
           this.curRadian = Math.atan2(this.rotateCurrent.y - this.centerPos.y, this.rotateCurrent.x - this.centerPos.x)
           this.tranformRadian = this.curRadian - this.preRadian
-          let newAngle = this.getRotate(target) +  Math.round(this.tranformRadian * 180 / Math.PI)
-          target.style.transform = `rotate(${newAngle}deg)`
-          this.pannelDom.style.transform = `rotate(${newAngle}deg)`
+          this.angle = this.getRotate(target) +  Math.round(this.tranformRadian * 180 / Math.PI)
+          target.style.transform = `rotate(${this.angle}deg)`
+          this.pannelDom.style.transform = `rotate(${this.angle}deg)`
           if (this.showAngle) {
-            this.angleDom.innerHTML = this.getRotate(target)
+            this.angleDom.innerHTML = this.angle
             this.angleDom.style.display = 'block'
           }
           this.preRadian = this.curRadian
           // 重新计算旋转后四个点的坐标变化
-          let disAngle = newAngle - this.initAngle
+          let disAngle = this.angle - this.initAngle
           this.rightBottomPoint = this.getRotatedPoint(this.initRightBottomPoint, this.centerPos, disAngle)
           this.rightTopPoint = this.getRotatedPoint(this.initRightTopPoint, this.centerPos, disAngle)
           this.leftTopPoint = this.getRotatedPoint(this.initLeftTopPoint, this.centerPos, disAngle)
@@ -255,8 +263,8 @@ export default class Drag {
       case 1:
         if (this.canChange) {
           this.centerPos = {
-            x: (e.clientX + this.rightBottomPoint.x) / 2,
-            y: (e.clientY + this.rightMiddlePoint.y) / 2
+            x: Math.floor((e.clientX + this.rightBottomPoint.x) / 2),
+            y: Math.floor((e.clientY + this.rightMiddlePoint.y) / 2)
           }
           // 计算旋转为水平角度的两点坐标
           newLeftTopPoint = this.getRotatedPoint({
@@ -277,8 +285,8 @@ export default class Drag {
             // 计算出左上角等比角度变换后水平坐标后，再计算旋转后的角度
             var rotateLeftTopPoint = this.getRotatedPoint(newLeftTopPoint, this.centerPos, this.initAngle)
             this.centerPos = {
-              x: (rotateLeftTopPoint.x + this.rightBottomPoint.x) / 2,
-              y: (rotateLeftTopPoint.y + this.rightBottomPoint.y) / 2
+              x: Math.floor((rotateLeftTopPoint.x + this.rightBottomPoint.x) / 2),
+              y: Math.floor((rotateLeftTopPoint.y + this.rightBottomPoint.y) / 2)
             }
             newLeftTopPoint = this.getRotatedPoint(rotateLeftTopPoint, this.centerPos, -this.initAngle)
             newRightBottomPoint = this.getRotatedPoint(this.rightBottomPoint, this.centerPos, -this.initAngle)
@@ -287,33 +295,37 @@ export default class Drag {
           }
           if (newWidth <= 12) {
             newWidth = 12
-            newHeight = newWidth / this.scale
+            newHeight = Math.floor(newWidth / this.scale)
             newLeftTopPoint.x = newRightBottomPoint.x - newWidth
             newLeftTopPoint.y = newRightBottomPoint.y - newHeight
           }
           if (newHeight <= 12) {
             newHeight = 12
-            newWidth = newHeight * this.scale
+            newWidth = Math.floor(newHeight * this.scale)
             newLeftTopPoint.y = newRightBottomPoint.y - newHeight
             newLeftTopPoint.x = newRightBottomPoint.x - newWidth
           }
           if (newHeight > 12 && newWidth > 12) {
-            target.style.left = newLeftTopPoint.x + 'px'
-            target.style.top = newLeftTopPoint.y + 'px'
-            target.style.width = newWidth + 'px'
-            target.style.height = newHeight + 'px'
-            this.pannelDom.style.left = newLeftTopPoint.x + 'px'
-            this.pannelDom.style.top = newLeftTopPoint.y + 'px'
-            this.pannelDom.style.width = newWidth + 'px'
-            this.pannelDom.style.height = newHeight + 'px'
+            this.left = newLeftTopPoint.x
+            this.top = newLeftTopPoint.y
+            this.width = newWidth
+            this.height = newHeight
+            target.style.left = `${this.left}px`
+            target.style.top = `${this.top}px`
+            target.style.width = `${this.width}px`
+            target.style.height = `${this.height}px`
+            this.pannelDom.style.left = `${this.left}px`
+            this.pannelDom.style.top = `${this.top}px`
+            this.pannelDom.style.width = `${this.width}px`
+            this.pannelDom.style.height = `${this.height}px`
           } 
         }
         break;
       case 2:
         if (this.canChange) {
           this.centerPos = {
-            x: (e.clientX + this.rightTopPoint.x) / 2,
-            y: (e.clientY + this.rightTopPoint.y) / 2
+            x: Math.floor((e.clientX + this.rightTopPoint.x) / 2),
+            y: Math.floor((e.clientY + this.rightTopPoint.y) / 2)
           }
           newLeftBottomPoint =  this.getRotatedPoint({
             x: e.clientX,
@@ -332,8 +344,8 @@ export default class Drag {
             }
             var rotatedLeftBottomPoint = this.getRotatedPoint(newLeftBottomPoint, this.centerPos, this.initAngle)
             this.centerPos = {
-              x: (rotatedLeftBottomPoint.x + this.rightTopPoint.x) / 2,
-              y: (rotatedLeftBottomPoint.y + this.rightTopPoint.y) / 2
+              x: Math.floor((rotatedLeftBottomPoint.x + this.rightTopPoint.x) / 2),
+              y: Math.floor((rotatedLeftBottomPoint.y + this.rightTopPoint.y) / 2)
             }
             newLeftBottomPoint = this.getRotatedPoint(rotatedLeftBottomPoint, this.centerPos, -this.initAngle)
             newRightTopPoint = this.getRotatedPoint(this.rightTopPoint, this.centerPos, -this.initAngle)
@@ -342,7 +354,7 @@ export default class Drag {
           }
           if (newHeight <= 12) {
             newHeight = 12
-            newWidth = newHeight * this.scale
+            newWidth = Math.floor(newHeight * this.scale)
             newLeftBottomPoint = {
               x: newRightTopPoint.x - newWidth,
               y: newRightTopPoint.y + newHeight
@@ -350,29 +362,33 @@ export default class Drag {
           }
           if (newWidth <= 12) {
             newWidth = 12
-            newHeight = newWidth / this.scale
+            newHeight = Math.floor(newWidth / this.scale)
             newLeftBottomPoint = {
               x: newRightTopPoint.x - newWidth,
               y: newRightTopPoint.y + newHeight
             }
           }
           if (newHeight > 12 && newHeight > 12) {
-            target.style.left = newLeftBottomPoint.x + 'px'
-            target.style.top = newRightTopPoint.y + 'px'
-            target.style.width = newWidth + 'px'
-            target.style.height = newHeight + 'px'
-            this.pannelDom.style.left = newLeftBottomPoint.x + 'px'
-            this.pannelDom.style.top = newRightTopPoint.y + 'px'
-            this.pannelDom.style.width = newWidth + 'px'
-            this.pannelDom.style.height = newHeight + 'px'
+            this.left = newLeftBottomPoint.x
+            this.top = newRightTopPoint.y
+            this.width = newWidth
+            this.height = newHeight
+            target.style.left = `${this.left}px`
+            target.style.top = `${this.top}px`
+            target.style.width = `${this.width}px`
+            target.style.height = `${this.height}px`
+            this.pannelDom.style.left = `${this.left}px`
+            this.pannelDom.style.top = `${this.top}px`
+            this.pannelDom.style.width = `${this.width}px`
+            this.pannelDom.style.height = `${this.height}px`
           }
         }
         break;
       case 3:
         if (this.canChange) {
           this.centerPos = {
-            x: (e.clientX + this.leftBottomPoint.x) / 2,
-            y: (e.clientY + this.leftBottomPoint.y) / 2
+            x: Math.floor((e.clientX + this.leftBottomPoint.x) / 2),
+            y: Math.floor((e.clientY + this.leftBottomPoint.y) / 2)
           }
           newRightTopPoint = this.getRotatedPoint({
             x: e.clientX,
@@ -391,8 +407,8 @@ export default class Drag {
             }
             let rotatedRightTopPoint = this.getRotatedPoint(newRightTopPoint, this.centerPos, this.initAngle)
             this.centerPos = {
-              x: (rotatedRightTopPoint.x + this.leftBottomPoint.x) / 2,
-              y: (rotatedRightTopPoint.y + this.leftBottomPoint.y) / 2
+              x: Math.floor((rotatedRightTopPoint.x + this.leftBottomPoint.x) / 2),
+              y: Math.floor((rotatedRightTopPoint.y + this.leftBottomPoint.y) / 2)
             }
             newLeftBottomPoint = this.getRotatedPoint(this.leftBottomPoint, this.centerPos, -this.initAngle)
             newRightTopPoint = this.getRotatedPoint(rotatedRightTopPoint, this.centerPos, -this.initAngle)
@@ -401,7 +417,7 @@ export default class Drag {
           }
           if (newWidth <= 12) {
             newWidth = 12
-            newHeight = newWidth / this.scale
+            newHeight = Math.floor(newWidth / this.scale)
             newRightTopPoint = {
               x: newLeftBottomPoint.x + newWidth,
               y: newLeftBottomPoint.y - newHeight
@@ -409,29 +425,33 @@ export default class Drag {
           }
           if (newHeight <= 12) {
             newHeight = 12
-            newWidth = newHeight * this.scale
+            newWidth = Math.floor(newHeight * this.scale)
             newRightTopPoint = {
               x: newLeftBottomPoint.x + newWidth,
               y: newLeftBottomPoint.y - newHeight
             }
           }
           if (newWidth > 12 && newHeight > 12) {
-            target.style.left = newLeftBottomPoint.x + 'px'
-            target.style.top = newRightTopPoint.y + 'px'
-            target.style.width = newWidth + 'px'
-            target.style.height = newHeight + 'px'
-            this.pannelDom.style.left = newLeftBottomPoint.x + 'px'
-            this.pannelDom.style.top = newRightTopPoint.y + 'px'
-            this.pannelDom.style.width = newWidth + 'px'
-            this.pannelDom.style.height = newHeight + 'px'
+            this.left = newLeftBottomPoint.x
+            this.top = newRightTopPoint.y
+            this.width = newWidth
+            this.height = newHeight
+            target.style.left = `${this.left}px`
+            target.style.top = `${this.top}px`
+            target.style.width = `${this.width}px`
+            target.style.height = `${this.height}px`
+            this.pannelDom.style.left = `${this.left}px`
+            this.pannelDom.style.top = `${this.top}px`
+            this.pannelDom.style.width = `${this.width}px`
+            this.pannelDom.style.height = `${this.height}px`
           }
         }
         break;
       case 4:
         if (this.canChange) {
           this.centerPos = {
-            x: (e.clientX + this.leftTopPoint.x) / 2,
-            y: (e.clientY + this.leftTopPoint.y) / 2
+            x: Math.floor((e.clientX + this.leftTopPoint.x) / 2),
+            y: Math.floor((e.clientY + this.leftTopPoint.y) / 2)
           }
           newRightBottomPoint = this.getRotatedPoint({
             x: e.clientX,
@@ -450,8 +470,8 @@ export default class Drag {
             }
             let rotatedRightBottomPoint = this.getRotatedPoint(newRightBottomPoint, this.centerPos, this.initAngle)
             this.centerPos = {
-              x: (rotatedRightBottomPoint.x + this.leftTopPoint.x) / 2,
-              y: (rotatedRightBottomPoint.y + this.leftTopPoint.y) / 2
+              x: Math.floor((rotatedRightBottomPoint.x + this.leftTopPoint.x) / 2),
+              y: Math.floor((rotatedRightBottomPoint.y + this.leftTopPoint.y) / 2)
             }
             newLeftTopPoint = this.getRotatedPoint(this.leftTopPoint, this.centerPos, -this.initAngle)
             newRightBottomPoint = this.getRotatedPoint(rotatedRightBottomPoint, this.centerPos, -this.initAngle)
@@ -460,7 +480,7 @@ export default class Drag {
           }
           if (newWidth <= 12) {
             newWidth = 12
-            newHeight = newWidth / this.scale
+            newHeight = Math.floor(newWidth / this.scale)
             newRightBottomPoint = {
               x: newLeftTopPoint.x + newWidth,
               y: newLeftTopPoint.y + newHeight
@@ -468,27 +488,30 @@ export default class Drag {
           }
           if (newHeight <= 12) {
             newHeight = 12
-            newWidth = newHeight * this.scale
+            newWidth = Math.floor(newHeight * this.scale)
             newRightBottomPoint = {
               x: newLeftTopPoint.x + newWidth,
               y: newLeftTopPoint.y + newHeight
             }
           }
           if (newWidth > 12 && newHeight > 12) {
-            target.style.left = newLeftTopPoint.x + 'px'
-            target.style.top = newLeftTopPoint.y + 'px'
-            target.style.width = newWidth + 'px'
-            target.style.height = newHeight + 'px'
-            this.pannelDom.style.left =  `${target.offsetLeft}px`
-            this.pannelDom.style.top = `${target.offsetTop}px`
-            this.pannelDom.style.width = `${target.offsetWidth}px`
-            this.pannelDom.style.height = `${target.offsetHeight}px`
+            this.left = newLeftTopPoint.x
+            this.top = newLeftTopPoint.y
+            this.width = newWidth
+            this.height = newHeight
+            target.style.left = `${this.left}px`
+            target.style.top = `${this.top}px`
+            target.style.width = `${this.width}px`
+            target.style.height = `${this.height}px`
+            this.pannelDom.style.left = `${this.left}px`
+            this.pannelDom.style.top = `${this.top}px`
+            this.pannelDom.style.width = `${this.width}px`
+            this.pannelDom.style.height = `${this.height}px`
           }
         }
         break;
       case 5:
         if (this.canChange) {
-          console.log(target)
           // 计算出鼠标现在所在的点，经过以bottommiddle点反向旋转后的位置,从而得到其y轴坐标点与topmiddle的x轴坐标结合，求出旋转后图形的topmiddle
           rotateCurrentPos = this.getRotatedPoint({
             x: e.clientX,
@@ -511,12 +534,15 @@ export default class Drag {
             x: (this.topMiddlePoint.x + this.bottomMiddlePoint.x) / 2,
             y: (this.topMiddlePoint.y + this.bottomMiddlePoint.y) / 2
           }
-          target.style.left = `${this.centerPos.x - target.offsetWidth / 2}px`
-          target.style.height = newHeight + 'px'
-          target.style.top = `${this.centerPos.y - newHeight / 2}px`
-          this.pannelDom.style.left = `${this.centerPos.x - target.offsetWidth / 2}px`
-          this.pannelDom.style.height = newHeight + 'px'
-          this.pannelDom.style.top = `${this.centerPos.y - newHeight / 2}px`
+          this.left = this.centerPos.x - target.offsetWidth / 2
+          this.top = this.centerPos.y - newHeight / 2
+          this.height = newHeight
+          target.style.left = `${this.left}px`
+          target.style.height = `${this.height}px`
+          target.style.top = `${this.top}px`
+          this.pannelDom.style.left = `${this.left}px`
+          this.pannelDom.style.height = `${this.height}px`
+          this.pannelDom.style.top = `${this.top}px`
         }
         break;
       case 6:
@@ -536,15 +562,18 @@ export default class Drag {
           }
           this.leftMiddlePoint = this.getRotatedPoint(rotatedLeftMiddlePonit, this.rightMiddlePoint, this.initAngle)
           this.centerPos = {
-            x: (this.leftMiddlePoint.x + this.rightMiddlePoint.x) / 2,
-            y: (this.leftMiddlePoint.y + this.rightMiddlePoint.y) / 2
+            x: Math.floor((this.leftMiddlePoint.x + this.rightMiddlePoint.x) / 2),
+            y: Math.floor((this.leftMiddlePoint.y + this.rightMiddlePoint.y) / 2)
           }
-          target.style.left = `${this.centerPos.x - newWidth / 2}px`
-          target.style.top = `${this.centerPos.y - target.offsetHeight / 2}px`
-          target.style.width = `${newWidth}px`
-          this.pannelDom.style.left = `${this.centerPos.x - newWidth / 2}px`
-          this.pannelDom.style.top = `${this.centerPos.y - target.offsetHeight / 2}px`
-          this.pannelDom.style.width = `${newWidth}px`
+          this.left = this.centerPos.x - newWidth / 2
+          this.top = this.centerPos.y - target.offsetHeight / 2
+          this.width = newWidth
+          target.style.left = `${this.left}px`
+          target.style.top = `${this.top}px`
+          target.style.width = `${this.width}px`
+          this.pannelDom.style.left = `${this.left}px`
+          this.pannelDom.style.top = `${this.top}px`
+          this.pannelDom.style.width = `${this.width}px`
         }
         break;
       case 7:
@@ -564,15 +593,18 @@ export default class Drag {
           }
           this.bottomMiddlePoint = this.getRotatedPoint(rotatedBottomMiddlePoint, this.topMiddlePoint, this.initAngle)
           this.centerPos = {
-            x: (this.bottomMiddlePoint.x + this.topMiddlePoint.x) / 2,
-            y: (this.bottomMiddlePoint.y + this.topMiddlePoint.y) / 2
+            x: Math.floor((this.bottomMiddlePoint.x + this.topMiddlePoint.x) / 2),
+            y: Math.floor((this.bottomMiddlePoint.y + this.topMiddlePoint.y) / 2)
           }
-          target.style.left = `${this.centerPos.x - target.offsetWidth / 2}px`
-          target.style.top = `${this.centerPos.y - newHeight / 2}px`
-          target.style.height = `${newHeight}px`
-          this.pannelDom.style.left = `${this.centerPos.x - target.offsetWidth / 2}px`
-          this.pannelDom.style.top = `${this.centerPos.y - newHeight / 2}px`
-          this.pannelDom.style.height = `${newHeight}px`
+          this.left = this.centerPos.x - target.offsetWidth / 2
+          this.top = this.centerPos.y - newHeight / 2
+          this.height = newHeight
+          target.style.left = `${this.left}px`
+          target.style.top = `${this.top}px`
+          target.style.height = `${this.height}px`
+          this.pannelDom.style.left = `${this.left}px`
+          this.pannelDom.style.top = `${this.top}px`
+          this.pannelDom.style.height = `${this.height}px`
         }
         break;
       case 8:
@@ -592,38 +624,41 @@ export default class Drag {
           }
           this.rightMiddlePoint = this.getRotatedPoint(rotatedRightMiddlePoint, this.leftMiddlePoint, this.initAngle)
           this.centerPos = {
-            x: (this.leftMiddlePoint.x + this.rightMiddlePoint.x) / 2,
-            y: (this.leftMiddlePoint.y + this.rightMiddlePoint.y) / 2
+            x: Math.floor((this.leftMiddlePoint.x + this.rightMiddlePoint.x) / 2),
+            y: Math.floor((this.leftMiddlePoint.y + this.rightMiddlePoint.y) / 2)
           }
-          target.style.left = `${this.centerPos.x - newWidth / 2}px`
-          target.style.top = `${this.centerPos.y - target.offsetHeight / 2}px`
+          this.left = this.centerPos.x - newWidth / 2
+          this.top = this.centerPos.y - target.offsetHeight / 2
+          this.width = newWidth
+          target.style.left = `${this.left}px`
+          target.style.top = `${this.top}px`
           target.style.width = `${newWidth}px`
-          this.pannelDom.style.left = `${this.centerPos.x - newWidth / 2}px`
-          this.pannelDom.style.top = `${this.centerPos.y - target.offsetHeight / 2}px`
-          this.pannelDom.style.width = `${newWidth}px`
+          this.pannelDom.style.left = `${this.left}px`
+          this.pannelDom.style.top = `${this.top}px`
+          this.pannelDom.style.width = `${this.width}px`
         }
         break;
       case 9:
         if (this.canChange) {
           let dis = {
-            x: e.clientX - this.mouseInit.x,
-            y: e.clientY - this.mouseInit.y
+            x: Math.floor(e.clientX - this.mouseInit.x),
+            y: Math.floor(e.clientY - this.mouseInit.y)
           }
-          let x = this.initPosition.x + dis.x
-          let y = this.initPosition.y + dis.y
-          target.style.left = `${x}px`
-          target.style.top = `${y}px`
-          this.pannelDom.style.left = `${x}px`
-          this.pannelDom.style.top = `${y}px`
-          this.pannelDom.style.width = `${target.offsetWidth}px`
-          this.pannelDom.style.height = `${target.offsetHeight}px`
+          this.left = this.initPosition.x + dis.x
+          this.top = this.initPosition.y + dis.y
+          target.style.left = `${this.left}px`
+          target.style.top = `${this.top}px`
+          this.pannelDom.style.left = `${this.left}px`
+          this.pannelDom.style.top = `${this.top}px`
+          this.pannelDom.style.width = `${this.width}px`
+          this.pannelDom.style.height = `${this.height}px`
           this.centerPos = {
             x: this.initCenterPos.x + dis.x,
             y: this.initCenterPos.y + dis.y
           }
           if (this.showPosition) {
             this.positionDom.style.display = 'inline-block'
-            this.positionDom.innerHTML = `X: ${x} Y: ${y}`
+            this.positionDom.innerHTML = `X: ${this.left} Y: ${this.top}`
           }
         }
         break;
@@ -635,7 +670,7 @@ export default class Drag {
       this.canChange = false
       if (this.angleDom) this.angleDom.style.display = 'none'
       if (this.positionDom) this.positionDom.style.display = 'none'
-      this.getTransferPosition(target.offsetLeft, target.offsetTop, target.offsetWidth, target.offsetHeight, this.getRotate(target), this.centerPos)
+      this.getTransferPosition(this.left, this.top, this.width, this.height, this.angle, this.centerPos)
     }
   }
   getRotate (target) {
@@ -669,8 +704,8 @@ export default class Drag {
   }
   getRotatedPoint (curPos, centerPos, angle) {
     return {
-      x: (curPos.x - centerPos.x) * Math.cos(Math.PI / 180 * angle) - (curPos.y - centerPos.y) * Math.sin(Math.PI / 180 * angle) + centerPos.x,
-      y: (curPos.x - centerPos.x) * Math.sin(Math.PI / 180 * angle) + (curPos.y - centerPos.y) * Math.cos(Math.PI / 180 * angle) + centerPos.y                   
+      x: Math.floor((curPos.x - centerPos.x) * Math.cos(Math.PI / 180 * angle) - (curPos.y - centerPos.y) * Math.sin(Math.PI / 180 * angle) + centerPos.x),
+      y: Math.floor((curPos.x - centerPos.x) * Math.sin(Math.PI / 180 * angle) + (curPos.y - centerPos.y) * Math.cos(Math.PI / 180 * angle) + centerPos.y)                   
     }
   }
   getTransferPosition (left, top, width, height, angle, center) {

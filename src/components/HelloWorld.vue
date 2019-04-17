@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-02 17:50:38
- * @LastEditTime: 2019-04-16 17:21:18
+ * @LastEditTime: 2019-04-17 15:38:05
  -->
 <template>
   <div id="hello">
@@ -44,14 +44,6 @@ export default {
     new Drag({
       id: 'test'
     })
-  },
-  methods: {
-    // createDragger (id) {
-    //   new Drag({
-    //     id: id,
-    //     parentNode: 'hello'
-    //   })
-    // }
   }
 }
 </script>
@@ -65,6 +57,7 @@ export default {
   left: 500px;
   top: 200px;
   border: 1px solid #f00;
+  box-sizing: border-box;
 }
 #box-dragger2 {
   width: 200px;
