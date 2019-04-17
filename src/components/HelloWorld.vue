@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-02 17:50:38
- * @LastEditTime: 2019-04-17 15:38:05
+ * @LastEditTime: 2019-04-17 16:46:39
  -->
 <template>
   <div id="hello">
@@ -29,7 +29,8 @@ export default {
     new Drag({
       id: 'box-dragger',
       showAngle: true,
-      isScale: false
+      isScale: false,
+      showBorder: false
     })
     new Drag({
       id: 'box-dragger2',
@@ -96,7 +97,10 @@ li {
 a {
   color: #42b983;
 }
-.hello {
-  position: relative;
+#hello {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #ccc;
 }
 </style>

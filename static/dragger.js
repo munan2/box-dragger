@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-04 16:35:59
- * @LastEditTime: 2019-04-17 15:36:24
+ * @LastEditTime: 2019-04-17 16:47:17
  */
 /**
  * @description: 拖拽类
@@ -38,7 +38,7 @@ export default class Drag {
     this.showAngle = obj.showAngle
     this.showPosition = obj.showPosition
     this.isScale = obj.isScale === undefined ? true : obj.isScale
-    this.parentNode = obj.parentNode ? document.getElementById(obj.parentNode) : document.body
+    this.container = obj.container ? document.getElementById(obj.container) : document.body
     this.targetObj = document.getElementById(obj.id)
     this.initPos()
     this.initPannel()
@@ -54,7 +54,7 @@ export default class Drag {
     if (!this.pannelDom) {
       this.pannelDom = document.createElement('div')
       this.pannelDom.id = 'pannel'
-      this.parentNode.appendChild(this.pannelDom)
+      this.container.appendChild(this.pannelDom)
     } else {
       this.pannelDom.innerHTML = ''
     }
@@ -664,7 +664,7 @@ export default class Drag {
         break;
     }
   }
-  moveLeave (target) {
+  moveLeave () {
     if (this.canChange || this.rotateFlag) {
       this.rotateFlag = false
       this.canChange = false

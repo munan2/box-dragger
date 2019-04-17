@@ -38,10 +38,9 @@
   top: -20px;
 }
 .dragger-position {
-  /* position: absolute; */
-  /* left: 50%; */
-  /* transform: translateX(-50%); */
-  padding: 0 3px;
+  position: absolute;
+  right: 0;
+  padding: 0 5px;
   background: #fafafa;
   border: 1px solid #ccc;
   bottom: -35px;
