@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-04 16:35:59
- * @LastEditTime: 2019-04-17 16:47:17
+ * @LastEditTime: 2019-04-18 15:01:43
  */
 /**
  * @description: 拖拽类
@@ -18,7 +18,6 @@
  * } 
  * @return:  
  */
-let TARGET_OBJ = '' // 选中某一个元素后，再对该元素进行操作时，确定是哪一个dom元素
 export default class Drag {
   constructor (obj) {
     this.id = obj.id
@@ -45,7 +44,7 @@ export default class Drag {
     this.initEvent()
   }
   /**
-   * @description: 初始化pannel面板
+   * @description: 判断是否有pannel面板
    * @param {type} 
    * @return: 
    */
@@ -60,28 +59,66 @@ export default class Drag {
     }
     this.initPannelDom()
   }
-  initEvent () {
-    document.addEventListener('mousemove', e => {
-      e.preventDefault && e.preventDefault()
-      this.moveChange(e, this.targetObj)
-    })
-    document.addEventListener('mouseup', e => {
-      this.moveLeave(this.targetObj)
-    })
-    if (this.canMove) {
-      this.pannelDom.onmousedown = e => {
-        e.stopPropagation()
+  /**
+   * @description: 初始化事件
+   * @param {type} 
+   * @return: 
+   */
+initEvent () {
+  function throttle(fn, interval) {
+    let canRun = true;
+    return function () {
+      if (!canRun) return;
+      canRun = false;
+      setTimeout(() => {
+        fn.apply(this, arguments);
+        canRun = true;
+      }, interval);
+    };
+  }
+  let that = this
+  document.addEventListener('mousemove', throttle(function (e) {
+    e.preventDefault && e.preventDefault()
+    that.moveChange(e, that.targetObj)
+  }, 10))
+  document.addEventListener('mouseup', e => {
+    this.moveLeave(this.targetObj)
+  })
+  // this.container.addEventListener('mousedown', e => {
+  //   this.mergeBox.flag = true
+  //   this.initPannel()
+  //   this.mergeBox.initPos = {
+  //     x: Math.floor(e.clientX),
+  //     y: Math.floor(e.clientY)
+  //   }
+  //   this.container.addEventListener('mousemove', e => {
+  //     if (this.mergeBox.flag) {
+  //       this.mergeBox.left = this.mergeBox.initPos.x
+  //       this.mergeBox.top = this.mergeBox.initPos.y
+  //       this.pannelDom.style.left = `${this.mergeBox.initPos.x}px`
+  //       this.pannelDom.style.top = `${this.mergeBox.initPos.y}px`
+  //       this.pannelDom.style.width = `${Math.floor(e.clientX) - this.mergeBox.initPos.x}px`
+  //       this.pannelDom.style.height = `${Math.floor(e.clientY) - this.mergeBox.initPos.y}px`
+  //     }
+  //   })
+  // })
+  if (this.canMove) {
+    // 外层给this.pannelDom添加mousedown事件，是在所有实例化结束后，panneldom被展示在最后一个实例化对象上，鼠标按下它时，触发moveInit事件
+    this.pannelDom.onmousedown = e => {
+      e.stopPropagation()
+      this.moveInit(9, e, this.targetObj)
+    }
+    this.targetObj.onmousedown = e => {
+      e.stopPropagation()
+      this.moveInit(9, e, this.targetObj)
+      this.initPannel()
+      // 在点击其他未被选中元素时，pannel定位到该元素上，重写pannelDom事件，因为此时的this.pannelDom已经根据新的目标元素被重写
+      this.pannelDom.onmousedown= e => {
         this.moveInit(9, e, this.targetObj)
-      }
-      this.targetObj.onmousedown = e => {
-        this.moveInit(9, e, this.targetObj)
-        this.initPannel()
-        this.pannelDom.onmousedown= e => {
-          this.moveInit(9, e, this.targetObj)
-        }
       }
     }
   }
+}
   /**
    * @description: 初始化Pannel内部dom结构
    * @param {} 
@@ -105,7 +142,7 @@ export default class Drag {
       this.pannelDom.appendChild(rotatePoint)
       rotatePoint.addEventListener('mousedown', e => {
         e.stopPropagation()
-        this.moveInit(0, e, TARGET_OBJ)
+        this.moveInit(0, e, this.targetObj)
       })
     }
     if (this.showBorder) {
@@ -122,7 +159,7 @@ export default class Drag {
         this.pannelDom.appendChild(zoomPoint)
         zoomPoint.addEventListener('mousedown', e => {
           e.stopPropagation()
-          this.moveInit(i, e, TARGET_OBJ)
+          this.moveInit(i, e, this.targetObj)
         })
       }
     }
@@ -133,7 +170,7 @@ export default class Drag {
         this.pannelDom.appendChild(pullPoint)
         pullPoint.addEventListener('mousedown', e => {
           e.stopPropagation()
-          this.moveInit(i, e, TARGET_OBJ)
+          this.moveInit(i, e, this.targetObj)
         })
       }
     }
@@ -202,7 +239,6 @@ export default class Drag {
     }
   }
   moveInit (type, e, target) {
-    TARGET_OBJ = target
     this.type = Number(type)
     this.mouseInit = {
       x: Math.floor(e.clientX),
@@ -236,8 +272,8 @@ export default class Drag {
       case 0:
         if (this.rotateFlag) {
           this.rotateCurrent = {
-            x: e.clientX,
-            y: e.clientY
+            x: Math.floor(e.clientX),
+            y: Math.floor(e.clientY)
           }
           this.curRadian = Math.atan2(this.rotateCurrent.y - this.centerPos.y, this.rotateCurrent.x - this.centerPos.x)
           this.tranformRadian = this.curRadian - this.preRadian

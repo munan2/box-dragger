@@ -3,7 +3,7 @@
  * @Author: zy
  * @LastEditors: zy
  * @Date: 2019-04-02 17:50:38
- * @LastEditTime: 2019-04-17 16:46:39
+ * @LastEditTime: 2019-04-18 00:48:13
  -->
 <template>
   <div id="hello">
@@ -73,6 +73,10 @@ export default {
   left: 400px;
   width: 200px;
   height: 200px;
+}
+#img-box img {
+  width: 100%;
+  height: 100%;
 }
 #test {
   position: absolute;
